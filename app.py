@@ -15,38 +15,49 @@ def index():
         name = request.form.get("name")
         file = request.files.get("file")
 
-        if file and name:
-            filepath = os.path.join(UPLOAD_FOLDER, f"{name}.py")
-            file.save(filepath)
+        if not name or not file:
+            return "❌ Name or file missing"
 
-            routes[name] = filepath
+        # Only allow .py files
+        if not file.filename.endswith(".py"):
+            return "❌ Only .py files allowed"
 
-            return f"✅ Link created: /{name}"
+        filepath = os.path.join(UPLOAD_FOLDER, f"{name}.py")
+        file.save(filepath)
+
+        routes[name] = filepath
+
+        return f"✅ Link created: /{name}"
 
     return render_template("index.html")
 
 
 @app.route("/<name>")
 def run_code(name):
-    if name in routes:
-        filepath = routes[name]
+    if name not in routes:
+        return "❌ Not Found"
 
-        try:
-            result = subprocess.run(
-                ["python3", filepath],
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            output = result.stdout + result.stderr
-        except Exception as e:
-            output = str(e)
+    filepath = routes[name]
 
-        return render_template("output.html", output=output)
+    try:
+        result = subprocess.run(
+            ["python3", filepath],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        output = result.stdout + result.stderr
 
-    return "❌ Not Found"
+    except subprocess.TimeoutExpired:
+        output = "⏱️ Timeout (5 sec limit)"
+
+    except Exception as e:
+        output = str(e)
+
+    return render_template("output.html", output=output)
 
 
+# 🔥 IMPORTANT for Render (Production)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
