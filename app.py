@@ -7,14 +7,13 @@ app = Flask(__name__)
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# route storage (temporary)
 routes = {}
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
-        name = request.form["name"]
-        file = request.files["file"]
+        name = request.form.get("name")
+        file = request.files.get("file")
 
         if file and name:
             filepath = os.path.join(UPLOAD_FOLDER, f"{name}.py")
@@ -34,7 +33,7 @@ def run_code(name):
 
         try:
             result = subprocess.run(
-                ["python", filepath],
+                ["python3", filepath],
                 capture_output=True,
                 text=True,
                 timeout=5
@@ -49,4 +48,5 @@ def run_code(name):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
